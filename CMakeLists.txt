@@ -3,6 +3,7 @@ project(simple_car)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
+set(CMAKE_BUILD_TYPE "Release")
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -13,7 +14,6 @@ set(catkin_deps
   serial
   geometry_msgs
   grid_map_ros
-  internal_grid_map
   nav_msgs)
 find_package(catkin REQUIRED COMPONENTS
   ${catkin_deps}

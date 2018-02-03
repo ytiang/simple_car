@@ -2,6 +2,7 @@
 // Created by yangt on 1/31/18.
 //
 #include "simple_car/simple_car_node.hpp"
+#include "simple_car/eigen2cv.hpp"
 SimpleCar::SimpleCar()
         : gridmap_(grid_map::GridMap({"obstacle"})) {
     this->enable_auto_drive_ =
@@ -118,8 +119,8 @@ bool SimpleCar::updateGridMap() {
                 this->gridmap_.atPosition("obstacle", pos) = 0;
             }
         }
-        cv::Mat map_cv = hmpl::eigen2cv(this->gridmap_.get("obstacle"));
-//        cv::GaussianBlur(map_cv, map_cv, cv::Size(7,7), 0, 0);
+        cv::Mat map_cv = eigen2cv(this->gridmap_.get("obstacle"));
+        cv::GaussianBlur(map_cv, map_cv, cv::Size(7,7), 0, 0);
         /// rviz display
         nav_msgs::OccupancyGrid map_msg;
         ros::Time time = ros::Time::now();
@@ -132,6 +133,31 @@ bool SimpleCar::updateGridMap() {
         this->map_pub_.publish(map_msg);
     }
 }
+
+double SimpleCar::getNearestObsFromBlock(double x1,
+                                         double y1,
+                                         double x2,
+                                         double y2) {
+    double min_dist = std::numeric_limits<double>::infinity();
+    double dist = 0;
+    double resolution = this->gridmap_.getResolution();
+    int step_x = (x2 - x1) / resolution;
+    int step_y = (y2 - y1) / resolution;
+    for(int i = 0; i<step_x; i++) {
+        double x = x1 + i * resolution;
+        for(int j = 0; j<step_y; j++) {
+            double y = y1 + j * resolution;
+            grid_map::Position pt(x, y);
+            if(this->gridmap_.atPosition("obstacle", pt) < 250) {
+                double dist = sqrt(pow(x, 2)+pow(y, 2));
+                if(fabs(dist) <fabs(min_dist)) {
+                    min_dist = dist * y / fabs(y);
+                }
+            }
+        }
+    }
+    return min_dist;
+}
 void SimpleCar::calSteering() {
     if(this->laser_msg_.ranges.empty())
         return;
@@ -143,118 +169,52 @@ void SimpleCar::calSteering() {
         this->go_count_ --;
         return;
     }
-    int obs_pixel = 0;
     this->drive_mode_old_ = this->drive_mode_;
-    double resolution = this->gridmap_.getResolution();
-    int step_y = (0.6 + 0.6) / (resolution);
-    int step_x = (1.2 - 0.0) / (resolution);
-    double init_x = 0;
-    double init_y = -0.6;
-    double obs_y = 0.;
-    for(int i = 0; i<step_x; i++) {
-        double x = init_x + i * resolution;
-        for(int j = 0; j<step_y; j++) {
-            double y = init_y + j * resolution;
-            grid_map::Position pt(x, y);
-            if(this->gridmap_.atPosition("obstacle", pt) < 50) {
-                obs_pixel ++;
-                obs_y = y;
-                if(obs_pixel > 2)
-                break;
-            }
-        }
-        if(obs_pixel > 2)
-            break;
-    }
-    if(obs_pixel > 2) { //need to back
-        if(obs_y > 0)
+    double near_front_obs_dis =
+            this->getNearestObsFromBlock(0.3, -WIDTH_2, 1.3, WIDTH_2);
+    if(fabs(near_front_obs_dis) < 1.5) { // there are obs on the near front, need to BACK
+        if(near_front_obs_dis < 0)
             this->drive_mode_.steering = TURN_RIGHT;
         else
             this->drive_mode_.steering = TURN_LEFT;
         this->drive_mode_.right_mode = BACK;
         this->drive_mode_.left_mode = BACK;
         this->back_count_ = 50;
-    } else {
-        step_y =(0.6 + 0.6) / resolution;
-        step_x = (2 - 1.2) / resolution;
-        init_x = 1.2;
-        init_y = -0.6;
-        for(int i = 0; i<step_x; i++) {
-            double x = init_x + i * resolution;
-            for(int j = 0; j<step_y; j++) {
-                double y = init_y + j * resolution;
-                grid_map::Position pt(x, y);
-                if(this->gridmap_.atPosition("obstacle", pt) < 50) {
-                    obs_pixel ++;
-                    obs_y = y;
-                    break;
-                }
+    } else { // there is no obs on the near front
+        double front_obs_dis =
+                this->getNearestObsFromBlock(1.3, -WIDTH_2, 3, WIDTH_2);
+        if(fabs(front_obs_dis) > 5) { // there are on obs on the front
+            this->drive_mode_.steering = GO_STRIGHT;
+            this->drive_mode_.right_mode = GO;
+            this->drive_mode_.left_mode = GO;
+        } else { // there are obs on the front, need to turn!
+            double left_obs_dis =
+                    this->getNearestObsFromBlock(0, 0.6, 2, 1.5);
+            double right_obs_dis =
+                    this->getNearestObsFromBlock(0, -1.5, 2, -0.6);
+            double dist_max;
+            if(fabs(left_obs_dis) > fabs(right_obs_dis)) {
+                dist_max = left_obs_dis;
+            } else {
+                dist_max = right_obs_dis;
             }
-            if(obs_pixel > 0)
-                break;
-        }
-        if(obs_pixel > 0) {// need to turn
-            obs_pixel = 0;
-            step_y =(1.5 - 0.6) / resolution;
-            step_x = (2- 0) / resolution;
-            init_x = 0;
-            init_y = -1.5;
-            for(int i = 0; i<step_x; i++) {
-                double x = init_x + i * resolution;
-                for(int j = 0; j<step_y; j++) {
-                    double y = init_y + j * resolution;
-                    grid_map::Position pt(x, y);
-                    if(this->gridmap_.atPosition("obstacle", pt) < 50) {
-                        obs_pixel ++;
-                        obs_y = y;
-                        break;
-                    }
-                }
-                if(obs_pixel > 0)
-                    break;
-            }
-            if(obs_pixel > 0) {
-                obs_pixel = 0;
-                step_y =(1.5 - 0.6) / resolution;
-                step_x = (2- 0) / resolution;
-                init_x = 0;
-                init_y = 0.6;
-                for(int i = 0; i<step_x; i++) {
-                    double x = init_x + i * resolution;
-                    for(int j = 0; j<step_y; j++) {
-                        double y = init_y + j * resolution;
-                        grid_map::Position pt(x, y);
-                        if(this->gridmap_.atPosition("obstacle", pt) < 50) {
-                            obs_pixel ++;
-                            obs_y = y;
-                            break;
-                        }
-                    }
-                    if(obs_pixel > 0)
-                        break;
-                }
-                if(obs_pixel > 0) {
-                    if(obs_y > 0)
-                        this->drive_mode_.steering = TURN_RIGHT;
-                    else
-                        this->drive_mode_.steering = TURN_LEFT;
-                    this->drive_mode_.right_mode = BACK;
-                    this->drive_mode_.left_mode = BACK;
-                    this->back_count_ = 50;
-                } else { // turn left
+            if(fabs(dist_max) < 1.5) { // need to back
+                if(dist_max < 0)
+                    this->drive_mode_.steering = TURN_RIGHT;
+                else
                     this->drive_mode_.steering = TURN_LEFT;
-                    this->drive_mode_.right_mode = GO;
-                    this->drive_mode_.left_mode = GO;
-                }
-            } else { // turn right
+                this->drive_mode_.right_mode = BACK;
+                this->drive_mode_.left_mode = BACK;
+                this->back_count_ = 50;
+            } else if(dist_max > 0) { // turn left
+                this->drive_mode_.steering = TURN_LEFT;
+                this->drive_mode_.right_mode = GO;
+                this->drive_mode_.left_mode = GO;
+            } else {
                 this->drive_mode_.steering = TURN_RIGHT;
                 this->drive_mode_.right_mode = GO;
                 this->drive_mode_.left_mode = GO;
             }
-        } else { // go straight
-            this->drive_mode_.steering = GO_STRIGHT;
-            this->drive_mode_.right_mode = GO;
-            this->drive_mode_.left_mode = GO;
         }
     }
     if(this->drive_mode_old_.right_mode == BACK &&
@@ -268,21 +228,38 @@ void SimpleCar::calSteering() {
         }
         this->go_count_ = 20;
     }
-//    grid_map::Polygon polygon;
-//    polygon.setFrameId(this->gridmap_.getFrameId());
-//    geometry_msgs::PolygonStamped p_message;
-//    p_message.header.stamp = ros::Time::now();
-//    grid_map::PolygonRosConverter::toMessage(polygon, p_message);
-//    this->poly_pub_.publish(p_message);
+    /// display vehicl polygon in rviz
+    double resolution = this->gridmap_.getResolution();
+    grid_map::Polygon polygon;
+    polygon.setFrameId(this->gridmap_.getFrameId());
+    int step_x = (LENGTH) / resolution;
+    int step_y = (2*WIDTH_2) / resolution;
+    double init_x = -1.2;
+    double y = -WIDTH_2;
+    for(size_t i = 0; i < step_x; i++) {
+        double x = init_x + i * resolution;
+        grid_map::Position pt(x, y);
+        polygon.addVertex(pt);
+    }
+    y = WIDTH_2;
+    for(size_t i = step_x-1; i >0; --i) {
+        double x = init_x + i * resolution;
+        grid_map::Position pt(x, y);
+        polygon.addVertex(pt);
+    }
+    geometry_msgs::PolygonStamped p_message;
+    p_message.header.stamp = ros::Time::now();
+    grid_map::PolygonRosConverter::toMessage(polygon, p_message);
+    this->poly_pub_.publish(p_message);
 }
 
 void SimpleCar::timerCb() {
     if(this->enable_auto_drive_) {
         if(this->updateGridMap()) {
             this->calSteering();
-            std::cout << "steer : "
+            std::cout << "steer: "
                       << (int)this->drive_mode_.steering
-                      << "speed: "
+                      << " speed: "
                       << (int)this->drive_mode_.right_mode
                       << std::endl;
         }

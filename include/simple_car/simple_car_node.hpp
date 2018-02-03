@@ -11,7 +11,6 @@
 #include <boost/bind.hpp>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PolygonStamped.h>
-#include <internal_grid_map/internal_grid_map.hpp>
 #include <grid_map_core/GridMap.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <grid_map_ros/grid_map_ros.hpp>
@@ -21,22 +20,16 @@
 
 
 #define GO_STRIGHT 1
-
-
 #define TURN_RIGHT 4
 #define TURN_LEFT 2
 
-#define  STOP 1
+#define STOP 1
 #define GO 2
 #define BACK 4
 
-#define DIS_THRESHOLD 5
+#define WIDTH_2 0.5
+#define LENGTH 1.5
 
-typedef struct Block{
-    double v;
-    int begin_id;
-    int end_id;
-}Block;
 
 typedef struct DriveMode{
     uint8_t steering;
@@ -69,6 +62,7 @@ class SimpleCar{
 
     void calSteering();
     bool updateGridMap();
+    double getNearestObsFromBlock(double x1, double y1, double x2, double y2);
     /// callback function
     void laserScanCb(const sensor_msgs::LaserScan &laser_msgs);
     void timerCb();
