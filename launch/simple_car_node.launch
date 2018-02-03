@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="simple_car" type="simple_car_node" name="simple_car_node" args="" output="screen" >
+        <rosparam command="load" file="$(find simple_car)/config/config.yaml"/>
+    </node>
+</launch>

@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py" name="teleop_twist_keyboard" args="" output="screen" />
+    <node pkg="urg_node" type="urg_node" name="urg_node" args="" output="screen" />
+</launch>
