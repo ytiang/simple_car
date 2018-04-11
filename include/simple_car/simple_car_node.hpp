@@ -48,7 +48,7 @@ class SimpleCar{
  public:
     SimpleCar();
     ~SimpleCar();
-    bool setSerial(std::string port = "/dev/ttyUSB0",
+    bool setSerial(std::string port = "/dev/ttyUSB1",
                    uint32_t baundRate = 9600);
     void sendCommand(const driveMode &cmd);
  private:

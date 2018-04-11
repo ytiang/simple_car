@@ -109,7 +109,9 @@ bool SimpleCar::updateGridMap() {
     } else {
         this->gridmap_.get("obstacle").setConstant(255);
         for(size_t i=0; i<this->laser_msg_.ranges.size(); i++) {
-            double angle = i * 0.00436 - (135.0/180.0)*M_PI;//M_PI_2 - (i - 540) * 0.00436;
+            double angle_increment = this->laser_msg_.angle_increment;
+//            double angle = i * 0.00436 - (135.0/180.0)*M_PI;//M_PI_2 - (i - 540) * 0.00436;
+            double angle = i * this->laser_msg_.angle_increment - M_PI;
             double dist = this->laser_msg_.ranges.at(i);
             double x = dist * cos(angle);
             double y = dist * sin(angle);
@@ -146,10 +148,10 @@ void SimpleCar::calSteering() {
     int obs_pixel = 0;
     this->drive_mode_old_ = this->drive_mode_;
     double resolution = this->gridmap_.getResolution();
-    int step_y = (0.6 + 0.6) / (resolution);
-    int step_x = (1.2 - 0.0) / (resolution);
-    double init_x = 0;
-    double init_y = -0.6;
+    int step_x = (0.6 + 0.6) / (resolution);
+    int step_y = (1.2 - 0.0) / (resolution);
+    double init_y = 0;
+    double init_x = -0.6;
     double obs_y = 0.;
     for(int i = 0; i<step_x; i++) {
         double x = init_x + i * resolution;
@@ -175,10 +177,10 @@ void SimpleCar::calSteering() {
         this->drive_mode_.left_mode = BACK;
         this->back_count_ = 50;
     } else {
-        step_y =(0.6 + 0.6) / resolution;
-        step_x = (2 - 1.2) / resolution;
-        init_x = 1.2;
-        init_y = -0.6;
+        step_x =(0.6 + 0.6) / resolution;
+        step_y = (2 - 1.2) / resolution;
+        init_y = 1.2;
+        init_x = -0.6;
         for(int i = 0; i<step_x; i++) {
             double x = init_x + i * resolution;
             for(int j = 0; j<step_y; j++) {
@@ -195,10 +197,10 @@ void SimpleCar::calSteering() {
         }
         if(obs_pixel > 0) {// need to turn
             obs_pixel = 0;
-            step_y =(1.5 - 0.6) / resolution;
-            step_x = (2- 0) / resolution;
-            init_x = 0;
-            init_y = -1.5;
+            step_x =(1.5 - 0.6) / resolution;
+            step_y = (2- 0) / resolution;
+            init_y = 0;
+            init_x = -1.5;
             for(int i = 0; i<step_x; i++) {
                 double x = init_x + i * resolution;
                 for(int j = 0; j<step_y; j++) {
@@ -215,10 +217,10 @@ void SimpleCar::calSteering() {
             }
             if(obs_pixel > 0) {
                 obs_pixel = 0;
-                step_y =(1.5 - 0.6) / resolution;
-                step_x = (2- 0) / resolution;
-                init_x = 0;
-                init_y = 0.6;
+                step_x =(1.5 - 0.6) / resolution;
+                step_y = (2- 0) / resolution;
+                init_y = 0;
+                init_x = 0.6;
                 for(int i = 0; i<step_x; i++) {
                     double x = init_x + i * resolution;
                     for(int j = 0; j<step_y; j++) {
