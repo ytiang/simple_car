@@ -120,7 +120,7 @@ bool SimpleCar::updateGridMap() {
                 this->gridmap_.atPosition("obstacle", pos) = 0;
             }
         }
-        cv::Mat map_cv = hmpl::eigen2cv(this->gridmap_.get("obstacle"));
+//        cv::Mat map_cv = hmpl::eigen2cv(this->gridmap_.get("obstacle"));
 //        cv::GaussianBlur(map_cv, map_cv, cv::Size(7,7), 0, 0);
         /// rviz display
         nav_msgs::OccupancyGrid map_msg;

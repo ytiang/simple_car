@@ -13,7 +13,6 @@ set(catkin_deps
   serial
   geometry_msgs
   grid_map_ros
-  internal_grid_map
   nav_msgs)
 find_package(catkin REQUIRED COMPONENTS
   ${catkin_deps}

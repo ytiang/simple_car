@@ -11,7 +11,7 @@
 #include <boost/bind.hpp>
 #include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PolygonStamped.h>
-#include <internal_grid_map/internal_grid_map.hpp>
+//#include <internal_grid_map/internal_grid_map.hpp>
 #include <grid_map_core/GridMap.hpp>
 #include <grid_map_ros/GridMapRosConverter.hpp>
 #include <grid_map_ros/grid_map_ros.hpp>
